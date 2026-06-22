@@ -6,8 +6,9 @@ on:
       arch:
         description: "Arquitetura(s) a compilar"
         type: choice
-        default: "arm64-v8a"
+        default: "all"
         options:
+          - "all"
           - "arm64-v8a"
           - "armeabi-v7a"
           - "x86_64"
@@ -33,10 +34,29 @@ jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
 
-  build-android:
-    needs: [generate-bridge]
-    name: build android apk (${{ github.event.inputs.arch }})
+  set-matrix:
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - name: Build matrix from input
+        id: set
+        shell: bash
+        run: |
+          if [[ "${{ github.event.inputs.arch }}" == "all" ]]; then
+            echo 'matrix=["arm64-v8a","armeabi-v7a","x86_64"]' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix=["${{ github.event.inputs.arch }}"]' >> $GITHUB_OUTPUT
+          fi
+
+  build-android:
+    needs: [generate-bridge, set-matrix]
+    name: build android apk (${{ matrix.arch }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.set-matrix.outputs.matrix) }}
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
@@ -60,7 +80,7 @@ jobs:
         id: triple
         shell: bash
         run: |
-          case "${{ github.event.inputs.arch }}" in
+          case "${{ matrix.arch }}" in
             arm64-v8a)   echo "target=aarch64-linux-android"     >> $GITHUB_OUTPUT; echo "platform=android-arm64" >> $GITHUB_OUTPUT; echo "ndk=ndk_arm64.sh"  >> $GITHUB_OUTPUT; echo "libdir=aarch64-linux-android" >> $GITHUB_OUTPUT ;;
             armeabi-v7a) echo "target=armv7-linux-androideabi"  >> $GITHUB_OUTPUT; echo "platform=android-arm"   >> $GITHUB_OUTPUT; echo "ndk=ndk_arm.sh"    >> $GITHUB_OUTPUT; echo "libdir=arm-linux-androideabi" >> $GITHUB_OUTPUT ;;
             x86_64)      echo "target=x86_64-linux-android"     >> $GITHUB_OUTPUT; echo "platform=android-x64"   >> $GITHUB_OUTPUT; echo "ndk=ndk_x64.sh"    >> $GITHUB_OUTPUT; echo "libdir=x86_64-linux-android" >> $GITHUB_OUTPUT ;;
@@ -133,7 +153,7 @@ jobs:
       - name: Install vcpkg dependencies
         shell: bash
         run: |
-          if ! ./flutter/build_android_deps.sh "${{ github.event.inputs.arch }}"; then
+          if ! ./flutter/build_android_deps.sh "${{ matrix.arch }}"; then
             find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
               echo "$_1:"; echo "======"; cat "$_1"; echo "======"; echo ""
             done
@@ -165,8 +185,8 @@ jobs:
           rustup target add ${{ steps.triple.outputs.target }}
           cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
           ./flutter/${{ steps.triple.outputs.ndk }}
-          mkdir -p ./flutter/android/app/src/main/jniLibs/${{ github.event.inputs.arch }}
-          cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ github.event.inputs.arch }}/librustdesk.so
+          mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}
+          cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/librustdesk.so
 
       - name: Build APK
         shell: bash
@@ -178,18 +198,18 @@ jobs:
           sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
           # assina com a chave de debug para gerar um APK instalavel sem precisar de secrets de assinatura
           sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
-          mkdir -p ./flutter/android/app/src/main/jniLibs/${{ github.event.inputs.arch }}
-          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ steps.triple.outputs.libdir }}/libc++_shared.so ./flutter/android/app/src/main/jniLibs/${{ github.event.inputs.arch }}/
-          cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ github.event.inputs.arch }}/librustdesk.so
+          mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}
+          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ steps.triple.outputs.libdir }}/libc++_shared.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/
+          cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/librustdesk.so
           pushd flutter
           flutter build apk --release --target-platform ${{ steps.triple.outputs.platform }} --split-per-abi
           popd
-          mv flutter/build/app/outputs/flutter-apk/app-${{ github.event.inputs.arch }}-release.apk \
-             rustdesk-${{ env.VERSION }}-${{ github.event.inputs.arch }}.apk
+          mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.arch }}-release.apk \
+             rustdesk-${{ env.VERSION }}-${{ matrix.arch }}.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: rustdesk-${{ env.VERSION }}-${{ github.event.inputs.arch }}
-          path: rustdesk-${{ env.VERSION }}-${{ github.event.inputs.arch }}.apk
+          name: rustdesk-${{ env.VERSION }}-${{ matrix.arch }}
+          path: rustdesk-${{ env.VERSION }}-${{ matrix.arch }}.apk
           if-no-files-found: error
