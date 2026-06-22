@@ -17,7 +17,18 @@
       "Bash(rm -f libs/hbb_common/.git)",
       "Bash(rm -rf .git/modules/libs/hbb_common)",
       "Bash(git commit -q -m ' *)",
-      "Bash(grep -rnE \"0071FF|2C8CFF|0x[0-9A-Fa-f]{0,2}0071ff\" flutter/lib/)"
+      "Bash(grep -rnE \"0071FF|2C8CFF|0x[0-9A-Fa-f]{0,2}0071ff\" flutter/lib/)",
+      "Bash(grep -rIn \"icon.ico\\\\|icon.png\\\\|res/icon\\\\|res\\\\\\\\\\\\\\\\icon\" build.rs)",
+      "Bash(grep -rIn \"launcher_icons\\\\|image_path\\\\|flutter_icons\" flutter/pubspec.yaml)",
+      "Bash(python -c \"import cairosvg; print\\('cairosvg OK'\\)\")",
+      "Bash(python -c \"import PIL; print\\('Pillow', PIL.__version__\\)\")",
+      "Bash(npm -v)",
+      "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK'\\)\")",
+      "Bash(npm install *)",
+      "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK', require\\('sharp'\\).versions.vips\\)\")",
+      "Bash(node gen.js)",
+      "Bash(node -e ' *)",
+      "Bash(rm -rf .icon-tmp)"
     ]
   }
 }
