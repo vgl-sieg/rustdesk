@@ -9,6 +9,14 @@ on:
         default: "x86_64"
         options:
           - "x86_64"
+      package:
+        description: "Tipo de pacote a gerar"
+        type: choice
+        default: "exe+msi"
+        options:
+          - "exe"
+          - "msi"
+          - "exe+msi"
 
 permissions:
   contents: read
@@ -153,7 +161,8 @@ jobs:
             ls -l ./libs/portable/Runner.res;
           fi
 
-      - name: Build self-extracted executable
+      - name: Build self-extracted executable (.exe)
+        if: contains(github.event.inputs.package, 'exe')
         shell: bash
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
@@ -164,9 +173,24 @@ jobs:
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
 
-      - name: Upload portable executable
+      - name: Add MSBuild to PATH
+        if: contains(github.event.inputs.package, 'msi')
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
+      - name: Build msi
+        if: contains(github.event.inputs.package, 'msi')
+        run: |
+          New-Item -ItemType Directory -Force ./SignOutput
+          pushd ./res/msi
+          python preprocess.py --arp -d ../../rustdesk
+          nuget restore msi.sln
+          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
+          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
+          popd
+
+      - name: Upload Windows packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rustdesk-${{ env.VERSION }}-windows-${{ matrix.job.arch }}
-          path: ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          path: ./SignOutput/
           if-no-files-found: error
