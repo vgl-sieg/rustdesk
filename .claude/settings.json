@@ -16,7 +16,8 @@
       "Bash(git rm *)",
       "Bash(rm -f libs/hbb_common/.git)",
       "Bash(rm -rf .git/modules/libs/hbb_common)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(grep -rnE \"0071FF|2C8CFF|0x[0-9A-Fa-f]{0,2}0071ff\" flutter/lib/)"
     ]
   }
 }
