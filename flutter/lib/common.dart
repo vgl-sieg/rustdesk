@@ -251,17 +251,17 @@ class MyTheme {
   MyTheme._();
 
   static const Color grayBg = Color(0xFFEFEFF2);
-  // Quinyx primary color (#118B9F) and its translucent variants.
-  static const Color accent = Color(0xFF118B9F);
-  static const Color accent50 = Color(0x77118B9F);
-  static const Color accent80 = Color(0xAA118B9F);
+  // Quinyx primary color (#01AEEE) and its translucent variants.
+  static const Color accent = Color(0xFF01AEEE);
+  static const Color accent50 = Color(0x7701AEEE);
+  static const Color accent80 = Color(0xAA01AEEE);
   static const Color canvasColor = Color(0xFF212121);
   static const Color border = Color(0xFFCCCCCC);
   static const Color idColor = Color(0xFF00B6F0);
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
   static const Color cmIdColor = Color(0xFF21790B);
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFF118B9F);
+  static const Color button = Color(0xFF01AEEE);
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile
