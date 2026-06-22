@@ -1013,7 +1013,7 @@ pub fn is_rustdesk() -> bool {
 #[inline]
 pub fn get_uri_prefix() -> String {
     // Always use the "rustdesk://" scheme regardless of the (white-labeled) app name,
-    // so deep links keep working even when APP_NAME contains spaces (e.g. "Quinyx RustDesk").
+    // so deep links keep working even when APP_NAME contains spaces (e.g. "QuinyxDesk").
     // This must stay in sync with the "rustdesk" scheme declared in the Android manifest.
     "rustdesk://".to_owned()
 }
