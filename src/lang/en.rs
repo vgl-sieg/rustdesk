@@ -14,6 +14,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Relay Server", "Relay server"),
         ("API Server", "API server"),
         ("invalid_http", "must start with http:// or https://"),
+        ("required_field_tip", "This field is required"),
         ("server_not_support", "Not yet supported by the server"),
         ("Password Required", "Password required"),
         ("Wrong Password", "Wrong password"),

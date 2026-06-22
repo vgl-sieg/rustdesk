@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:external_path/external_path.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -476,6 +479,28 @@ class ServerModel with ChangeNotifier {
     if (id != _serverId.id) {
       _serverId.id = id;
       notifyListeners();
+    }
+    // Persist the access code (device ID) to a txt file on every app access so it
+    // can be retrieved from another app / file manager without screen access.
+    await _saveAccessCodeToFile(id);
+  }
+
+  // Writes the device ID to <public Download>/rustdesk_acesso.txt on Android.
+  // Requires storage permission (the app already declares MANAGE_EXTERNAL_STORAGE);
+  // failures are non-fatal and just logged.
+  Future<void> _saveAccessCodeToFile(String id) async {
+    if (!isAndroid) return;
+    if (id.isEmpty || id == 'NA') return;
+    try {
+      final root = (await ExternalPath.getExternalStorageDirectories()).first;
+      final dir = Directory('$root/Download');
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final file = File('${dir.path}/rustdesk_acesso.txt');
+      await file.writeAsString('ID: $id\n', flush: true);
+    } catch (e) {
+      debugPrint('Failed to save access code to file: $e');
     }
   }
 

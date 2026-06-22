@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git submodule *)",
+      "Bash(git config *)",
+      "Bash(git restore *)",
+      "Bash(git -C libs/hbb_common branch --show-current)",
+      "Bash(git -C libs/hbb_common remote -v)",
+      "Bash(git -C libs/hbb_common status --short)",
+      "Bash(git -C libs/hbb_common log --oneline -3)",
+      "Bash(git -C libs/hbb_common status --short --ignored)",
+      "Bash(git -C libs/hbb_common ls-files)",
+      "Bash(set -e)",
+      "Bash(git rm *)",
+      "Bash(rm -f libs/hbb_common/.git)",
+      "Bash(rm -rf .git/modules/libs/hbb_common)",
+      "Bash(git commit -q -m ' *)"
+    ]
+  }
+}

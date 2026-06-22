@@ -70,14 +70,17 @@ void showServerSettingsWithValue(
     OverlayDialogManager dialogManager,
     void Function(VoidCallback)? upSetState) async {
   var isInProgress = false;
-  final idCtrl = TextEditingController(text: serverConfig.idServer);
-  final relayCtrl = TextEditingController(text: serverConfig.relayServer);
-  final apiCtrl = TextEditingController(text: serverConfig.apiServer);
-  final keyCtrl = TextEditingController(text: serverConfig.key);
+  // Never pre-fill the current values: the dialog must not reveal the configured
+  // server/key to anyone who opens it, even when a configuration already exists.
+  final idCtrl = TextEditingController();
+  final relayCtrl = TextEditingController();
+  final apiCtrl = TextEditingController();
+  final keyCtrl = TextEditingController();
 
   RxString idServerMsg = ''.obs;
   RxString relayServerMsg = ''.obs;
   RxString apiServerMsg = ''.obs;
+  RxString keyServerMsg = ''.obs;
 
   final controllers = [idCtrl, relayCtrl, apiCtrl, keyCtrl];
   final errMsgs = [
@@ -176,7 +179,7 @@ void showServerSettingsWithValue(
                     },
                   ),
                   SizedBox(height: 8),
-                  buildField('Key', keyCtrl, ''),
+                  buildField('Key', keyCtrl, keyServerMsg.value),
                   if (isInProgress)
                     Padding(
                       padding: EdgeInsets.only(top: 8),
@@ -193,6 +196,16 @@ void showServerSettingsWithValue(
         dialogButton(
           'OK',
           onPressed: () async {
+            // Require ID, API and Key to be filled before saving.
+            final requiredTip = translate('required_field_tip');
+            idServerMsg.value = idCtrl.text.trim().isEmpty ? requiredTip : '';
+            apiServerMsg.value = apiCtrl.text.trim().isEmpty ? requiredTip : '';
+            keyServerMsg.value = keyCtrl.text.trim().isEmpty ? requiredTip : '';
+            if (idServerMsg.value.isNotEmpty ||
+                apiServerMsg.value.isNotEmpty ||
+                keyServerMsg.value.isNotEmpty) {
+              return;
+            }
             if (await submit()) {
               close();
               showToast(translate('Successful'));
