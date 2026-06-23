@@ -485,7 +485,7 @@ class ServerModel with ChangeNotifier {
     await _saveAccessCodeToFile(id);
   }
 
-  // Writes the device ID to <public Download>/rustdesk_acesso.txt on Android.
+  // Writes the device ID to <public Download>/quinyxdesk_acesso.txt on Android.
   // Requires storage permission (the app already declares MANAGE_EXTERNAL_STORAGE);
   // failures are non-fatal and just logged.
   Future<void> _saveAccessCodeToFile(String id) async {
@@ -497,7 +497,7 @@ class ServerModel with ChangeNotifier {
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
-      final file = File('${dir.path}/rustdesk_acesso.txt');
+      final file = File('${dir.path}/quinyxdesk_acesso.txt');
       await file.writeAsString('ID: $id\n', flush: true);
     } catch (e) {
       debugPrint('Failed to save access code to file: $e');
