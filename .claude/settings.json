@@ -28,7 +28,17 @@
       "Bash(node -e \"require\\('sharp'\\); console.log\\('sharp OK', require\\('sharp'\\).versions.vips\\)\")",
       "Bash(node gen.js)",
       "Bash(node -e ' *)",
-      "Bash(rm -rf .icon-tmp)"
+      "Bash(rm -rf .icon-tmp)",
+      "Bash(ls -la flutter/windows/runner/resources/)",
+      "Bash(grep -rIn \"app_icon\\\\|\\\\.ico\" flutter/windows/runner/*.rc flutter/windows/runner/Runner.rc)",
+      "Bash(ls -la res/msi)",
+      "Bash(find res/msi -iname \"*.ico\" -o -iname \"*.png\")",
+      "Bash(node -e \"require\\('sharp'\\);require\\('png-to-ico'\\);console.log\\('deps OK'\\)\")",
+      "Bash(ls flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/)",
+      "Bash(cat flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json)",
+      "Bash(ls flutter/ios/Runner/Assets.xcassets/AppIcon.appiconset/)",
+      "Bash(node gen2.js)",
+      "Bash(node tray.js)"
     ]
   }
 }
