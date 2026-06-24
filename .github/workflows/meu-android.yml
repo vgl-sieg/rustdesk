@@ -29,6 +29,10 @@ env:
   RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
   API_SERVER: "${{ secrets.API_SERVER }}"
   PRESET_PASSWORD: "${{ secrets.PRESET_PASSWORD }}"
+  # Token compartilhado da ponte com o Launcher Quinyx, lido pelo Gradle via System.getenv
+  # (app/build.gradle). DEVE ser identico ao REMOTE_SESSION_TOKEN usado no build do launcher.
+  # Se o secret nao existir, expande para "" e o build cai no default (ver build.gradle).
+  REMOTE_SESSION_TOKEN: "${{ secrets.REMOTE_SESSION_TOKEN }}"
 
 jobs:
   generate-bridge:

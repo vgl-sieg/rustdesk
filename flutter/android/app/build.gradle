@@ -32,6 +32,15 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// Token compartilhado da ponte com o Launcher Quinyx (broadcasts de sessao remota e de ID; ver
+// LauncherBridge). Provisionado via ambiente/local.properties e DEVE ser identico ao do launcher.
+// O default existe so para o build de dev funcionar out-of-the-box — sobrescreva em producao
+// definindo REMOTE_SESSION_TOKEN em AMBOS os apps.
+def remoteSessionToken = System.getenv("REMOTE_SESSION_TOKEN") ?:
+        localProperties.getProperty("REMOTE_SESSION_TOKEN") ?:
+        "qxds-remote-session-7f3a9c2e1b8d406d8a4f2c0e9b15d7a3"
+def remoteSessionTokenEscaped = remoteSessionToken.replace("\\", "\\\\").replace("\"", "\\\"")
+
 // Add rustls-platform-verifier Android support
 String findRustlsPlatformVerifierMavenDir() {
     def dependencyText = providers.exec {
@@ -95,12 +104,18 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.quinyx.rustdesk"
         minSdkVersion 22
         targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        buildConfigField "String", "REMOTE_SESSION_TOKEN", "\"${remoteSessionTokenEscaped}\""
     }
 
     signingConfigs {

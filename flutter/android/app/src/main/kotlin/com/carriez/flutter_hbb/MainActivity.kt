@@ -163,6 +163,14 @@ class MainActivity : FlutterActivity() {
                         result.success(false)
                     }
                 }
+                "report_access_id" -> {
+                    // Empurra o ID de acesso ao Launcher Quinyx via broadcast (caminho preferencial,
+                    // substitui o arquivo em Downloads). Best-effort: nunca falha o lado Dart.
+                    if (call.arguments is String) {
+                        LauncherBridge.reportAccessId(context, call.arguments as String)
+                    }
+                    result.success(true)
+                }
                 "request_permission" -> {
                     if (call.arguments is String) {
                         requestPermission(context, call.arguments as String)

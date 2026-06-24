@@ -480,8 +480,12 @@ class ServerModel with ChangeNotifier {
       _serverId.id = id;
       notifyListeners();
     }
-    // Persist the access code (device ID) to a txt file on every app access so it
-    // can be retrieved from another app / file manager without screen access.
+    // Push the access code (device ID) to the Launcher Quinyx via a secure broadcast — the
+    // preferred, real-time path that does not depend on storage permission. The txt file below
+    // is kept only as a fallback (e.g. when the launcher reads it while QuinyxDesk isn't running).
+    if (isAndroid && id.isNotEmpty && id != 'NA') {
+      parent.target?.invokeMethod("report_access_id", id);
+    }
     await _saveAccessCodeToFile(id);
   }
 

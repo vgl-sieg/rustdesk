@@ -210,14 +210,6 @@ class MainService : Service() {
     private val useVP9 = false
     private val binder = LocalBinder()
 
-    // Integracao com o Launcher Quinyx: avisamos quando a captura de tela comeca/termina para que
-    // o launcher omita o FLAG_SECURE do overlay de bloqueio durante a sessao (senao o overlay
-    // aparece preto na captura e o admin remoto nao ve o prompt para desbloquear). Os quatro
-    // valores abaixo formam o contrato e DEVEM ser identicos em RemoteSessionReceiver no launcher.
-    private val launcherPackage = "br.com.quinyx.launcher"
-    private val launcherRemoteSessionAction = "br.com.quinyx.launcher.action.REMOTE_SESSION"
-    private val launcherRemoteSessionToken = "qxds-remote-session-7f3a9c2e1b8d406d8a4f2c0e9b15d7a3"
-
     private var reuseVirtualDisplay = Build.VERSION.SDK_INT > 33
 
     // video
@@ -259,7 +251,7 @@ class MainService : Service() {
     override fun onDestroy() {
         checkMediaPermission()
         // Garante que o launcher rearme o FLAG_SECURE mesmo se o servico morrer sem stopCapture.
-        notifyLauncherRemoteSession(false)
+        LauncherBridge.notifyRemoteSession(this, false)
         stopService(Intent(this, FloatingWindowService::class.java))
         super.onDestroy()
     }
@@ -413,20 +405,6 @@ class MainService : Service() {
         return audioRecordHandle.onVoiceCallClosed(mediaProjection)
     }
 
-    // Avisa o Launcher Quinyx que a sessao de captura comecou/terminou. Best-effort: qualquer
-    // falha (launcher ausente, broadcast bloqueado) e apenas logada — nunca derruba o servico.
-    private fun notifyLauncherRemoteSession(active: Boolean) {
-        runCatching {
-            val intent = Intent(launcherRemoteSessionAction).apply {
-                setPackage(launcherPackage)
-                putExtra("token", launcherRemoteSessionToken)
-                putExtra("sender_package", packageName)
-                putExtra("active", active)
-            }
-            sendBroadcast(intent)
-        }.onFailure { Log.w(logTag, "Falha ao notificar sessao remota ao launcher", it) }
-    }
-
     fun startCapture(): Boolean {
         if (isStart) {
             return true
@@ -458,7 +436,7 @@ class MainService : Service() {
         _isStart = true
         FFI.setFrameRawEnable("video",true)
         MainActivity.rdClipboardManager?.setCaptureStarted(_isStart)
-        notifyLauncherRemoteSession(true)
+        LauncherBridge.notifyRemoteSession(this, true)
         return true
     }
 
@@ -468,7 +446,7 @@ class MainService : Service() {
         FFI.setFrameRawEnable("video",false)
         _isStart = false
         MainActivity.rdClipboardManager?.setCaptureStarted(_isStart)
-        notifyLauncherRemoteSession(false)
+        LauncherBridge.notifyRemoteSession(this, false)
         // release video
         if (reuseVirtualDisplay) {
             // The virtual display video projection can be paused by calling `setSurface(null)`.
