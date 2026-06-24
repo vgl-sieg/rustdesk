@@ -20,6 +20,9 @@
             <!-- https://developer.android.com/training/package-visibility/use-cases#open-urls-custom-tabs -->
             <action android:name="android.support.customtabs.action.CustomTabsService" />
         </intent>
+        <!-- Launcher Quinyx: necessario no Android 11+ para o setPackage do broadcast de sessao
+             remota resolver (notifyLauncherRemoteSession em MainService). -->
+        <package android:name="br.com.quinyx.launcher" />
     </queries>
 
     <application
