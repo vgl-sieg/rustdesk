@@ -34,10 +34,20 @@ if (flutterVersionName == null) {
 
 // Token compartilhado da ponte com o Launcher Quinyx (broadcasts de sessao remota e de ID; ver
 // LauncherBridge). Provisionado via ambiente/local.properties e DEVE ser identico ao do launcher.
-// O default existe so para o build de dev funcionar out-of-the-box — sobrescreva em producao
-// definindo REMOTE_SESSION_TOKEN em AMBOS os apps.
-def remoteSessionToken = System.getenv("REMOTE_SESSION_TOKEN") ?:
-        localProperties.getProperty("REMOTE_SESSION_TOKEN") ?:
+// Esse token e a UNICA prova de origem efetiva do sinal que desliga o FLAG_SECURE do prompt de
+// credencial no launcher (SEC-002): por isso ele NUNCA pode cair num default publico embutido no
+// APK. Um build de release sem o segredo provisionado e ABORTADO abaixo — simetrico ao guard do
+// launcher (app/build.gradle.kts). O default de dev existe so para o build de debug funcionar.
+def provisionedRemoteSessionToken = System.getenv("REMOTE_SESSION_TOKEN") ?:
+        localProperties.getProperty("REMOTE_SESSION_TOKEN")
+def isReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+if (isReleaseBuild && (provisionedRemoteSessionToken == null || provisionedRemoteSessionToken.trim().isEmpty())) {
+    throw new GradleException(
+            "REMOTE_SESSION_TOKEN nao provisionado: defina-o no ambiente/local.properties para " +
+            "builds de release. Sem ele, o APK embutiria um token publico e qualquer app poderia " +
+            "forjar o sinal que desliga o FLAG_SECURE do prompt de credencial no launcher (SEC-002).")
+}
+def remoteSessionToken = provisionedRemoteSessionToken ?:
         "qxds-remote-session-7f3a9c2e1b8d406d8a4f2c0e9b15d7a3"
 def remoteSessionTokenEscaped = remoteSessionToken.replace("\\", "\\\\").replace("\"", "\\\"")
 
