@@ -1012,10 +1012,25 @@ pub fn is_rustdesk() -> bool {
 
 #[inline]
 pub fn get_uri_prefix() -> String {
-    // Always use the "rustdesk://" scheme regardless of the (white-labeled) app name,
-    // so deep links keep working even when APP_NAME contains spaces (e.g. "QuinyxDesk").
-    // This must stay in sync with the "rustdesk" scheme declared in the Android manifest.
-    "rustdesk://".to_owned()
+    // The deep-link scheme must match the URL protocol registered with the OS.
+    //
+    // On Windows the protocol is registered as the lowercased app name (see
+    // `get_after_install` in platform/windows.rs, where the scheme is `{ext}` =
+    // `app_name.to_lowercase()`, e.g. "quinyxdesk://"). Derive it the same way
+    // here so the registered scheme and the parser stay in sync; otherwise the
+    // browser opens the app but the link is silently ignored.
+    //
+    // Other platforms still register the legacy "rustdesk" scheme (Android
+    // manifest `android:scheme`, Linux `x-scheme-handler/rustdesk`), so keep
+    // using it there to avoid breaking those deep links.
+    #[cfg(windows)]
+    {
+        format!("{}://", get_app_name().to_lowercase())
+    }
+    #[cfg(not(windows))]
+    {
+        "rustdesk://".to_owned()
+    }
 }
 
 #[cfg(target_os = "macos")]
