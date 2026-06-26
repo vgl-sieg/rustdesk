@@ -91,6 +91,9 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
   var _buildDate = "";
   var _autoDisconnectTimeout = "";
   var _hideServer = false;
+  // Mantém oculta a opção de trocar o Servidor ID/Relay (botão e modal).
+  // Defina como true caso seja necessário reexibir no futuro.
+  static const _showServerSettings = false;
   var _hideProxy = false;
   var _hideNetwork = false;
   var _hideWebSocket = false;
@@ -712,7 +715,13 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
             ],
           ),
         SettingsSection(title: Text(translate("Settings")), tiles: [
-          if (!disabledSettings && !_hideNetwork && !_hideServer)
+          // Servidor ID/Relay ocultado a pedido: a opção de troca e o modal
+          // ficam escondidos, mas o código é mantido para uso futuro.
+          // ignore: dead_code
+          if (_showServerSettings &&
+              !disabledSettings &&
+              !_hideNetwork &&
+              !_hideServer)
             SettingsTile(
                 title: Text(translate('ID/Relay Server')),
                 leading: Icon(Icons.cloud),

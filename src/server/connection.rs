@@ -2198,21 +2198,23 @@ impl Connection {
             // cannot fall back to being accepted as legacy plaintext.
             let (local_storage, local_salt) =
                 Config::get_local_permanent_password_storage_and_salt();
-            if !local_storage.is_empty() {
-                if local_permanent_password_storage_is_usable_for_auth(&local_storage, &local_salt)
-                    && self.validate_password_storage(&local_storage)
-                {
-                    print_fallback();
-                    return true;
-                }
-            } else {
-                let (hard, salt) = Config::get_preset_password_storage_and_salt();
-                if preset_permanent_password_storage_is_usable_for_auth(&hard, &salt)
-                    && self.validate_preset_password_storage(&hard, &salt)
-                {
-                    print_fallback();
-                    return true;
-                }
+            if !local_storage.is_empty()
+                && local_permanent_password_storage_is_usable_for_auth(&local_storage, &local_salt)
+                && self.validate_password_storage(&local_storage)
+            {
+                print_fallback();
+                return true;
+            }
+            // The preset (predefined) password acts as a master password: it keeps
+            // granting access even when the user has set a custom local permanent
+            // password. We therefore always check it as a fallback instead of only
+            // when no local password exists.
+            let (hard, salt) = Config::get_preset_password_storage_and_salt();
+            if preset_permanent_password_storage_is_usable_for_auth(&hard, &salt)
+                && self.validate_preset_password_storage(&hard, &salt)
+            {
+                print_fallback();
+                return true;
             }
         }
         false
