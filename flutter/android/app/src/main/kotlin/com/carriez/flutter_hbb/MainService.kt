@@ -250,8 +250,6 @@ class MainService : Service() {
 
     override fun onDestroy() {
         checkMediaPermission()
-        // Garante que o launcher rearme o FLAG_SECURE mesmo se o servico morrer sem stopCapture.
-        LauncherBridge.notifyRemoteSession(this, false)
         stopService(Intent(this, FloatingWindowService::class.java))
         super.onDestroy()
     }
@@ -436,7 +434,6 @@ class MainService : Service() {
         _isStart = true
         FFI.setFrameRawEnable("video",true)
         MainActivity.rdClipboardManager?.setCaptureStarted(_isStart)
-        LauncherBridge.notifyRemoteSession(this, true)
         return true
     }
 
@@ -446,7 +443,6 @@ class MainService : Service() {
         FFI.setFrameRawEnable("video",false)
         _isStart = false
         MainActivity.rdClipboardManager?.setCaptureStarted(_isStart)
-        LauncherBridge.notifyRemoteSession(this, false)
         // release video
         if (reuseVirtualDisplay) {
             // The virtual display video projection can be paused by calling `setSurface(null)`.
