@@ -39,6 +39,9 @@ jobs:
         run: |
           apt-get update -y
           apt-get install -y \
+            autoconf \
+            autoconf-archive \
+            automake \
             build-essential \
             ca-certificates \
             clang \
@@ -50,6 +53,7 @@ jobs:
             libasound2-dev \
             libayatana-appindicator3-dev \
             libclang-dev \
+            libtool \
             libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev \
             libgtk-3-dev \
