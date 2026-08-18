@@ -78,7 +78,17 @@ jobs:
         run: |
           cargo install cargo-expand --version ${{ env.CARGO_EXPAND_VERSION }} --locked
           cargo install flutter_rust_bridge_codegen --version ${{ env.FLUTTER_RUST_BRIDGE_VERSION }} --features "uuid" --locked
-          pushd flutter && sed -i -e 's/extended_text: 14.0.0/extended_text: 13.0.0/g' pubspec.yaml && flutter pub get && popd
+          pushd flutter
+          sed -i -e 's/extended_text: 14.0.0/extended_text: 13.0.0/g' pubspec.yaml
+          # pub.dev devolve 403 ("authorization failed") esporadicamente em runner compartilhado
+          n=0
+          until flutter pub get; do
+            n=$((n+1))
+            [ $n -ge 3 ] && exit 1
+            echo "flutter pub get falhou, tentativa $n; aguardando 20s"
+            sleep 20
+          done
+          popd
 
       - name: Run flutter rust bridge
         run: |
