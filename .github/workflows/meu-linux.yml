@@ -10,7 +10,10 @@ env:
   RUST_VERSION: "1.75"
   FLUTTER_VERSION: "3.24.5"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  # x-gha foi removido do vcpkg; cache em disco + actions/cache faz o mesmo papel.
+  VCPKG_BINARY_SOURCES: "clear;files,/opt/vcpkg-cache,readwrite"
+  # aom exige NASM 2.x; o Ubuntu 26.04 empacota NASM 3.x (CLI incompativel).
+  NASM_DEBVERSION: "2.15.05-1"
   VERSION: "1.4.8"
   DEBIAN_FRONTEND: "noninteractive"
   CARGO_INCREMENTAL: "0"
@@ -61,7 +64,6 @@ jobs:
             libxdo-dev \
             libxfixes-dev \
             llvm-dev \
-            nasm \
             ninja-build \
             pkg-config \
             python3 \
@@ -72,12 +74,16 @@ jobs:
             zstd
           apt-get clean
 
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      # O nasm do Ubuntu 26.04 e NASM 3.x, que aom rejeita ("multipass optimization
+      # not supported"). Mesma versao usada pelo job sciter do upstream.
+      - name: Install NASM 2.x
+        run: |
+          wget -q -O /tmp/nasm.deb \
+            "http://ftp.us.debian.org/debian/pool/main/n/nasm/nasm_${NASM_DEBVERSION}_amd64.deb"
+          dpkg -i /tmp/nasm.deb && rm /tmp/nasm.deb
+          apt-mark hold nasm
+          nasm -v
+          nasm -hf | grep -q -- "-Ox" || { echo "nasm sem -Ox: aom vai falhar"; exit 1; }
 
       - name: Checkout source code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -99,7 +105,15 @@ jobs:
           prefix-key: meu-rustdesk-linux
           key: x86_64-unknown-linux-gnu
 
-      - name: Setup vcpkg with Github Actions binary cache
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: /opt/vcpkg-cache
+          key: vcpkg-x64-linux-u2604-${{ env.VCPKG_COMMIT_ID }}-${{ hashFiles('vcpkg.json', 'res/vcpkg/**') }}
+          restore-keys: |
+            vcpkg-x64-linux-u2604-${{ env.VCPKG_COMMIT_ID }}-
+
+      - name: Setup vcpkg
         uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
         with:
           vcpkgDirectory: /opt/artifacts/vcpkg
