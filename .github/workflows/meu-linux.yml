@@ -1,0 +1,168 @@
+name: Meu Build Linux
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VERSION: "1.4.8"
+  DEBIAN_FRONTEND: "noninteractive"
+  CARGO_INCREMENTAL: "0"
+  # Servidor / chave / senha embutidos em tempo de compilação (config.rs lê via option_env!)
+  RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
+  RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
+  API_SERVER: "${{ secrets.API_SERVER }}"
+  PRESET_PASSWORD: "${{ secrets.PRESET_PASSWORD }}"
+
+jobs:
+  generate-bridge:
+    uses: ./.github/workflows/bridge.yml
+
+  build-linux:
+    needs: [generate-bridge]
+    name: build linux deb (ubuntu 26.04 / amd64)
+    runs-on: ubuntu-24.04
+    # Compila dentro do próprio Ubuntu 26.04: glibc/GTK do .deb batem com o alvo.
+    container: ubuntu:26.04
+    steps:
+      # git/curl/tar precisam existir antes do checkout e do cache.
+      - name: Install prerequisites
+        run: |
+          apt-get update -y
+          apt-get install -y \
+            build-essential \
+            ca-certificates \
+            clang \
+            cmake \
+            curl \
+            g++ \
+            gcc \
+            git \
+            libasound2-dev \
+            libayatana-appindicator3-dev \
+            libclang-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgtk-3-dev \
+            liblzma-dev \
+            libpam0g-dev \
+            libpulse-dev \
+            libssl-dev \
+            libva-dev \
+            libxcb-randr0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxdo-dev \
+            libxfixes-dev \
+            llvm-dev \
+            nasm \
+            ninja-build \
+            pkg-config \
+            python3 \
+            unzip \
+            wget \
+            xz-utils \
+            zip \
+            zstd
+          apt-get clean
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Disable git safe.directory
+        run: git config --global --add safe.directory "*"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-unknown-linux-gnu
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: meu-rustdesk-linux
+          key: x86_64-unknown-linux-gnu
+
+      - name: Setup vcpkg with Github Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: /opt/artifacts/vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        shell: bash
+        run: |
+          # --clean-after-build: buildtrees do ffmpeg/aom estouram o disco do runner
+          if ! $VCPKG_ROOT/vcpkg \
+            install \
+            --clean-after-build \
+            --triplet x64-linux \
+            --x-install-root="$VCPKG_ROOT/installed"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+              echo "$_1:"
+              echo "======"
+              cat "$_1"
+              echo "======"
+              echo ""
+            done
+            exit 1
+          fi
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact
+          path: ./
+
+      - name: Install flutter
+        shell: bash
+        run: |
+          wget -q -O /tmp/flutter.tar.xz \
+            https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${{ env.FLUTTER_VERSION }}-stable.tar.xz
+          tar xf /tmp/flutter.tar.xz -C /opt && rm /tmp/flutter.tar.xz
+          echo "/opt/flutter/bin" >> $GITHUB_PATH
+
+      - name: Patch flutter
+        shell: bash
+        run: |
+          if [[ "3.24.5" == "${{ env.FLUTTER_VERSION }}" ]]; then
+            pushd /opt/flutter
+            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+            popd
+          fi
+          flutter doctor -v
+
+      - name: Build rustdesk (.deb)
+        shell: bash
+        env:
+          DEB_ARCH: amd64
+        run: |
+          df -h
+          python3 ./build.py --flutter --hwcodec --unix-file-copy-paste
+          mkdir -p ./output
+          mv rustdesk-*.deb ./output/quinyxdesk-${{ env.VERSION }}-ubuntu26.04-amd64.deb
+          ls -l ./output
+
+      - name: Upload deb
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: quinyxdesk-${{ env.VERSION }}-ubuntu26.04-amd64
+          path: ./output/
+          if-no-files-found: error
