@@ -162,7 +162,7 @@ jobs:
         run: |
           if [[ "3.24.5" == "${{ env.FLUTTER_VERSION }}" ]]; then
             pushd /opt/flutter
-            git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+            git apply "$GITHUB_WORKSPACE/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff"
             popd
           fi
           flutter doctor -v
