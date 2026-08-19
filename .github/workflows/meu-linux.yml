@@ -17,6 +17,9 @@ env:
   VERSION: "1.4.8"
   DEBIAN_FRONTEND: "noninteractive"
   CARGO_INCREMENTAL: "0"
+  # GCC 15 (Ubuntu 26.04) nao inclui <cstdint> transitivamente; webm-sys/libwebm e
+  # outras fontes C++ de 2024 dependem disso. cc-rs le CXXFLAGS.
+  CXXFLAGS: "-include cstdint"
   # Servidor / chave / senha embutidos em tempo de compilação (config.rs lê via option_env!)
   RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
   RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
