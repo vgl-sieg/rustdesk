@@ -192,6 +192,25 @@ jobs:
           mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}
           cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/librustdesk.so
 
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 --decode > flutter/android/app/upload-keystore.jks
+
+      # storeFile e resolvido relativo a flutter/android/app (file() no app/build.gradle)
+      - name: Create key.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          cat > flutter/android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
       - name: Add Android Developer Verification file
         env:
           ADI_REGISTRATION_SNIPPET: ${{ secrets.ADI_REGISTRATION_SNIPPET }}
@@ -208,8 +227,6 @@ jobs:
         run: |
           export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
           sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
-          # assina com a chave de debug para gerar um APK instalavel sem precisar de secrets de assinatura
-          sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
           mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}
           cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ steps.triple.outputs.libdir }}/libc++_shared.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/
           cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/librustdesk.so
