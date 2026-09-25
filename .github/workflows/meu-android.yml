@@ -192,6 +192,14 @@ jobs:
           mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}
           cp ./target/${{ steps.triple.outputs.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.arch }}/librustdesk.so
 
+      - name: Add Android Developer Verification file
+        env:
+          ADI_REGISTRATION_SNIPPET: ${{ secrets.ADI_REGISTRATION_SNIPPET }}
+        run: |
+          mkdir -p flutter/android/app/src/main/assets
+          printf '%s\n' "$ADI_REGISTRATION_SNIPPET" \
+            > flutter/android/app/src/main/assets/adi-registration.properties
+
       - name: Build APK
         shell: bash
         env:
